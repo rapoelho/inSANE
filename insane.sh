@@ -2,7 +2,8 @@
 
 ## Rotina para carregar as variáveis padrões do inSANE
 configurarVariaveis () {
-	PastaPadrao=~/Imagens/Scan ## Pasta onde o Scan será salvo
+	PastaImagens=`xdg-user-dir PICTURES`
+	PastaPadrao=~$PastaImagens/Scan ## Pasta onde o Scan será salvo
 	ResolucaoPadrao=600 ## Resolução da imagem em DPI
 }
 
@@ -69,7 +70,7 @@ progresso () {
 	fi
 }
 
-echo -e "\nBem-vindo ao inSANE\nEsse é um Script simples para usar o Scanner por meio do SANE\nVersão 1.0.0\nScript desenvolvido por Rapoelho\n"
+echo -e "\nBem-vindo ao inSANE\nEsse é um Script simples para usar o Scanner por meio do SANE\nVersão 1.0.1\nScript desenvolvido por Rapoelho\n"
 arquivoConfiguracao
 
 echo "Detectando Scanner..."
