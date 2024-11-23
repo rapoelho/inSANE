@@ -3,7 +3,7 @@
 ## Rotina para carregar as variáveis padrões do inSANE
 configurarVariaveis () {
 	PastaImagens=`xdg-user-dir PICTURES`
-	PastaPadrao=~$PastaImagens/Scan ## Pasta onde o Scan será salvo
+	PastaPadrao=$PastaImagens/Scan ## Pasta onde o Scan será salvo
 	ResolucaoPadrao=600 ## Resolução da imagem em DPI
 }
 
