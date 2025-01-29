@@ -59,6 +59,15 @@
 
 # https://www.shellcheck.net/
 
+
+# https://www.vivaolinux.com.br/topico/Suse/Permissao-para-executar-um-scanner
+# https://www.vivaolinux.com.br/topico/Duvidas-em-Geral/Linux-Mint-Nao-consigo-fazer-o-simple-scan-reconhecer-o-scanner-da-Epson-L3150
+# https://www.hamrick.com/vuescan/supported-scanners.html
+# https://www.openprinting.org/drivers
+# https://linuxdicasesuporte.blogspot.com/2018/06/scanner-com-sane-para-debian-e-ubuntu.html
+# https://linuxdicasesuporte.blogspot.com/2020/02/liberar-o-scanner-de-rede-no-firewall.html
+# https://www.vivaolinux.com.br/dica/Configurar-scanner-no-Debian-Lenny-Linux
+
 # ----------------------------------------------------------------------------------------
 
 
@@ -113,9 +122,21 @@ visualizador_de_imagem="gthumb"
 
 # Usar lsusb para listar os dispositivos USB conectados e filtrar por várias marcas
 
-SCANNER_KEYWORDS="Scanner|Epson|Canon|HP|Brother|Fujitsu|Xerox|Kodak|Samsung|Plustek|Microtek|Avision|Visioneer|Panasonic|Mustek|Siemens|Oki|Sharp|Kofax|Bosch|Savin|Contex|Nikon|Adesso|Avision|Zebra|Primera|Reiner|Sunmi|Star|Doxie|ION|EloTouch"
+SCANNER_KEYWORDS="Scanner|Ricoh|Lexmark|Epson|Canon|HP|Brother|Fujitsu|Xerox|Kodak|Samsung|Plustek|Microtek|Avision|Visioneer|Panasonic|Mustek|Siemens|Oki|Sharp|Kofax|Bosch|Savin|Contex|Nikon|Adesso|Avision|Zebra|Primera|Reiner|Sunmi|Star|Doxie|ION|EloTouch"
+
+# https://www.vivaolinux.com.br/dica/Scanner-Lexmark-serie-X1100-X1200
 
 
+# Nome dos grupos a serem verificados
+
+echo "scanner
+lp
+_saned" > /tmp/grupos.txt
+
+
+# A definição de um array com nome dos grupos não funcionou. Retorna o grupo com valor 1000.
+
+# https://www.vivaolinux.com.br/dica/Configurar-scanner-no-Debian-Lenny-Linux
 
 
 # ----------------------------------------------------------------------------------------
@@ -150,27 +171,69 @@ done
 
 
 
-# Nome do grupo a ser verificado
+# Nome dos grupos a serem verificados
 
-GROUP="scanner"
+# Utilizamos um array para armazenar os nomes dos grupos que você quer verificar (scanner, lp e _saned).
 
-USER=$(whoami)
+
+
+# Caminho do arquivo txt
+
+arquivo="/tmp/grupos.txt"
+
+# Verificar se o arquivo existe
+
+if [ ! -f "$arquivo" ]; then
+
+
+yad \
+    --center \
+    --warning \
+    --title="Erro" \
+    --text="Arquivo $arquivo não encontrado!"
+
+  exit 1
+
+fi
+
+
+# Obtém todos os grupos aos quais o usuário pertence (inclui o grupo primário)
+
+USER_GROUPS=$(groups "$USER" | cut -d: -f2)
+
+echo "Grupos do usuário $USER: $USER_GROUPS"
+
+
+
+# Loop para ler cada linha do arquivo
+
+while IFS= read -r grupo; do
+
 
 # Verifica se o usuário está no grupo 'scanner'
 
-if ! groups "$USER" | grep &>/dev/null "\b$GROUP\b"; then
+if ! groups "$USER" | grep &>/dev/null "\b$grupo\b"; then
 
     # Se o usuário NÃO estiver no grupo, exibe o aviso com YAD
 
     yad \
     --center \
     --warning \
-    --title="Grupo '$GROUP' não encontrado" \
-    --text="Você não está no grupo '$GROUP'.\n\nPara adicionar seu usuário ao grupo, execute o seguinte comando no terminal:\n\n  sudo usermod -aG $GROUP $USER\n\nApós isso, faça logout e login novamente."
+    --title="Grupo '$grupo' não encontrado" \
+    --text="Você não está no grupo '$grupo'.\n\nPara adicionar seu usuário ao grupo, execute o seguinte comando no terminal:\n\n# usermod -aG $grupo $USER\n\nApós isso, faça logout e login novamente."
+
+    rm /tmp/grupos.txt
 
     exit
 
 fi
+
+
+done < "$arquivo"
+
+rm /tmp/grupos.txt
+
+
 
 
 # ----------------------------------------------------------------------------------------
@@ -399,6 +462,8 @@ fi
 # Pode ter falso positivo (Ex: celular sendo reconhecido como scanner por causa do nome do fabricante)
 
 # verificar_scanner
+
+
 
 # ----------------------------------------------------------------------------------------
 
@@ -638,6 +703,8 @@ if grep -Eq "^No scanners were identified." /tmp/dispositivo.log ; then
 
 
 echo "
+# ----------------------------------------------------------------------------------------
+
 Verificar os drivers do scanner
 
 Certifique-se de que os drivers do scanner estão instalados corretamente. A maioria dos 
@@ -645,6 +712,27 @@ scanners utiliza o software SANE (Scanner Access Now Easy) no Linux, que fornece
 drivers necessários. Você pode instalar o pacote do SANE ou verificar se ele já está 
 instalado.
 
+
+# ----------------------------------------------------------------------------------------
+
+# Verificar os arquivos de configurações (.conf) que ficam no diretório /etc/sane.d
+
+# Fabricante e modelo
+
+# Inserir manualmente as informações do equipamento para o programa XSANE listar o scannner.
+
+# ----------------------------------------------------------------------------------------
+
+Verifica se é necessario criar regra udev para o dispositivo USB.
+
+Já editou o arquivo /etc/sane.d/dll.conf, para adicionar o nome do fabricante do scanner?
+
+
+# sudo sane-find-scanner
+
+# sudo scanimage -L
+
+# ----------------------------------------------------------------------------------------
 
 Verificar o status do scanner
 
@@ -660,6 +748,8 @@ Mas se o comando scanimage -L não estiver conseguindo detectar o dispositivo, p
 por vários motivos. Se a solução imediata for desconectar e reconectar o cabo USB, isso 
 pode ser um indício de que o sistema não está reconhecendo o scanner corretamente até que 
 a conexão seja resetada.
+
+# ----------------------------------------------------------------------------------------
 
 "
 
