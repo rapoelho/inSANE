@@ -109,60 +109,14 @@ visualizador_de_imagem="gthumb"
 
 
 
-# ----------------------------------------------------------------------------------------
+# Definir palavras-chave para identificar várias marcas de scanners
 
-help(){
+# Usar lsusb para listar os dispositivos USB conectados e filtrar por várias marcas
 
-echo "como resolver  o scanimage -L não consegue detectar o scanner. A solução pra isso é desconectar e conectar o cabo USB do Scanner.
-
-O comando scanimage -L geralmente é utilizado para detectar scanners conectados ao seu sistema, mas se ele não estiver conseguindo detectar o dispositivo, pode ser por vários motivos. Se a solução imediata for desconectar e reconectar o cabo USB, isso pode ser um indício de que o sistema não está reconhecendo o scanner corretamente até que a conexão seja resetada. Aqui estão algumas etapas que você pode tentar para resolver o problema de forma mais permanente:
+SCANNER_KEYWORDS="Scanner|Epson|Canon|HP|Brother|Fujitsu|Xerox|Kodak|Samsung|Plustek|Microtek|Avision|Visioneer|Panasonic|Mustek|Siemens|Oki|Sharp|Kofax|Bosch|Savin|Contex|Nikon|Adesso|Avision|Zebra|Primera|Reiner|Sunmi|Star|Doxie|ION|EloTouch"
 
 
-1. Verificar os drivers do scanner
 
-Certifique-se de que os drivers do scanner estão instalados corretamente. A maioria dos scanners utiliza o software SANE (Scanner Access Now Easy) no Linux, que fornece os drivers necessários. Você pode instalar o pacote do SANE ou verificar se ele já está instalado:
-
-Para Debian/Ubuntu:
-
-sudo apt update
-sudo apt install sane sane-utils
-
-Para Fedora:
-
-sudo dnf install sane-backends sane-frontends
-
-2. Verificar permissões USB
-
-O scanner pode não estar sendo detectado corretamente devido a permissões de acesso ao dispositivo USB. Para garantir que o seu usuário tenha as permissões necessárias, adicione-o ao grupo scanner:
-
-sudo usermod -aG scanner $USER
-
-Após isso, faça logout e login novamente ou reinicie o computador.
-3. Verificar o status do serviço SANE
-
-Às vezes, o serviço responsável por detectar o scanner pode estar com problemas. Você pode tentar reiniciar esse serviço ou verificar o seu status.
-
-Reinicie o serviço saned (caso esteja usando o serviço de rede do SANE):
-
-sudo systemctl restart saned
-
-Ou para verificar se o scanner é detectado diretamente pela interface USB:
-
-lsusb
-
-4. Conectar o scanner em outra porta USB
-
-Em alguns casos, a porta USB onde o scanner está conectado pode ter algum problema. Tente conectar o scanner a outra porta USB do seu computador.
-5. Verificar o status do scanner
-
-Você pode usar o comando scanimage -L para tentar detectar o scanner depois de cada uma dessas mudanças, e ver se ele aparece na lista de dispositivos disponíveis.
-
-Se o problema continuar após essas tentativas, pode ser uma questão de hardware ou uma falha mais profunda de comunicação entre o scanner e o sistema. Nesse caso, verificar o manual do dispositivo ou consultar o fabricante para drivers específicos pode ser útil.
-
-
-"
-
-}
 
 # ----------------------------------------------------------------------------------------
 
@@ -182,6 +136,272 @@ done
 # uma mensagem de erro.
 
 # ----------------------------------------------------------------------------------------
+
+
+# Verificar permissões USB
+
+# O scanner pode não estar sendo detectado corretamente devido a permissões de acesso ao 
+# dispositivo USB. Para garantir que o seu usuário tenha as permissões necessárias, 
+# adicione-o ao grupo scanner:
+
+# sudo usermod -aG scanner $USER
+
+# Após isso, faça logout e login novamente ou reinicie o computador.
+
+
+
+# Nome do grupo a ser verificado
+
+GROUP="scanner"
+
+USER=$(whoami)
+
+# Verifica se o usuário está no grupo 'scanner'
+
+if ! groups "$USER" | grep &>/dev/null "\b$GROUP\b"; then
+
+    # Se o usuário NÃO estiver no grupo, exibe o aviso com YAD
+
+    yad \
+    --center \
+    --warning \
+    --title="Grupo '$GROUP' não encontrado" \
+    --text="Você não está no grupo '$GROUP'.\n\nPara adicionar seu usuário ao grupo, execute o seguinte comando no terminal:\n\n  sudo usermod -aG $GROUP $USER\n\nApós isso, faça logout e login novamente."
+
+    exit
+
+fi
+
+
+# ----------------------------------------------------------------------------------------
+
+
+# Verificar o status do serviço SANE
+
+# Às vezes, o serviço responsável por detectar o scanner pode estar com problemas. Você 
+# pode tentar reiniciar esse serviço ou verificar o seu status.
+
+# Reinicie o serviço saned (caso esteja usando o serviço de rede do SANE):
+
+# sudo systemctl restart saned
+
+
+
+
+# Função para verificar o status do serviço SANE (saned)
+
+check_saned_status() {
+
+
+echo -e "\nIniciando verificação do serviço SANE...\n"
+
+
+    # Tentar verificar com systemctl (usado por sistemas com systemd)
+
+    if command -v systemctl &>/dev/null; then
+
+        echo -e "\nVerificando status do serviço saned com systemctl... \n"
+
+        if ! sudo systemctl status saned; then
+
+            notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\n# systemctl enable saned.service \n\n# systemctl restart saned.service"
+
+            exit 1
+        fi
+
+
+    # Verificar com 'service' (usado em sistemas com Upstart)
+
+    elif command -v service &>/dev/null; then
+
+        echo -e "\nVerificando status do serviço saned com service... \n"
+
+        if ! sudo service saned status; then
+
+            notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\n# service saned restart"
+
+            exit 1
+        fi
+
+
+    # Verificar com scripts init.d (para distribuições mais antigas ou minimalistas)
+
+    elif [ -f /etc/init.d/saned ]; then
+
+        echo -e "\nVerificando status do serviço saned com /etc/init.d/saned... \n"
+
+        if ! sudo /etc/init.d/saned status; then
+
+            notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\n# update-rc.d saned defaults \n\n# /etc/init.d/saned restart"
+
+            exit 1
+        fi
+
+
+    # Verificar no Slackware (geralmente usa rc.d)
+
+    elif [ -f /etc/rc.d/rc.saned ]; then
+
+        echo -e "\nVerificando status do serviço saned no Slackware... \n"
+
+        if ! sudo /etc/rc.d/rc.saned status; then
+
+            notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\n# chmod +x /etc/rc.d/rc.saned \n\n# /etc/rc.d/rc.saned restart"
+
+            exit 1
+        fi
+    
+
+    # Verificar no Devuan (sem systemd, mas usando sysvinit)
+
+    elif [ -f /etc/init.d/saned ]; then
+
+        echo -e "\nVerificando status do serviço saned no Devuan... \n"
+
+        if ! sudo /etc/init.d/saned status; then
+
+            notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\n# update-rc.d saned defaults \n\n# /etc/init.d/saned restart"
+
+            exit 1
+        fi
+
+
+    # Verificar no Void Linux (sem systemd, usa runit)
+
+    elif [ -d /etc/sv/saned ]; then
+
+        echo -e "\nVerificando status do serviço saned no Void Linux...\n"
+
+        if ! sudo sv status saned; then
+
+            notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "\nServiço 'saned' não encontrado ou não está ativo:\n\n# ln -s /etc/sv/saned /var/service/ \n\n# sv restart saned"
+
+            exit 1
+        fi
+
+
+    # Verificar no Gentoo (geralmente usa OpenRC)
+
+    elif command -v rc-service &>/dev/null; then
+
+        echo -e "\nVerificando status do serviço saned no Gentoo... \n"
+
+        if ! sudo rc-service saned status; then
+
+            notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\n# rc-update add saned default \n\n# /etc/init.d/saned restart"
+
+            exit 1
+        fi
+
+
+
+
+
+    # Verificar se o serviço SANE está habilitado na configuração do NixOS
+
+    elif  ! grep -q 'services.sane.enable = true;' /etc/nixos/configuration.nix; then
+
+       echo -e "\nErro: O serviço SANE NÃO está habilitado na configuração do NixOS. \n"
+
+
+    # Verificar o status do serviço 'saned' via systemctl
+
+    if ! systemctl is-active --quiet saned; then
+
+            echo "Erro: O serviço 'saned' NÃO está ATIVO."
+
+            notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\nAdicione 'services.sane.enable = true;' no arquivo /etc/nixos/configuration.nix  \n\n# nixos-rebuild switch"
+
+
+
+
+            exit 1
+    fi
+
+
+
+    else
+
+        echo -e "\nNenhum método de gerenciamento de serviços reconhecido encontrado (systemd, service, init.d, runit, OpenRC). \n"
+
+        exit
+
+    fi
+}
+
+
+
+
+# Função para verificar se o usuário está no grupo sudo
+
+check_sudo() {
+
+
+    if ! groups "$USER" | grep -q '\bsudo\b'; then
+
+        # groups
+
+        notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro" "Você precisa ser membro do grupo 'sudo' para executar esta função."
+
+        exit 1
+
+    else
+
+
+# O usuario deve esta no grupo sudo para essa função.
+
+# Verificar status do serviço 'saned'
+
+check_saned_status
+
+
+    fi
+}
+
+
+# Verificar se o usuário está no grupo sudo
+
+# check_sudo
+
+
+
+
+# ----------------------------------------------------------------------------------------
+
+verificar_scanner() {
+
+# Ou para verificar se o scanner é detectado diretamente pela interface USB:
+
+# lsusb
+
+
+# Verificar se o scanner está listado nos dispositivos USB
+
+echo "Verificando dispositivos USB conectados..."
+
+# Usar lsusb para listar os dispositivos USB conectados e filtrar por várias marcas
+
+if lsusb | grep -Ei "$SCANNER_KEYWORDS"; then
+
+    echo "Scanner detectado na interface USB."
+
+else
+
+    echo "Nenhum scanner detectado na interface USB."
+
+    # exit 1
+fi
+
+
+}
+
+
+# Pode ter falso positivo (Ex: celular sendo reconhecido como scanner por causa do nome do fabricante)
+
+# verificar_scanner
+
+# ----------------------------------------------------------------------------------------
+
 
 # Rotina para carregar as variáveis padrões do inSANE
 
@@ -315,6 +535,7 @@ Resolucao=$ResolucaoPadrao
 
 # Detecção do scanner:
 
+
 selecionarScanner() {
 
 
@@ -328,7 +549,9 @@ selecionarScanner() {
 
 # Então a forma para detectar automaticamente o Scanner foi essa aqui:
 
-	scanimage -L | grep -v Camera | gawk -F '`' -P '{ print $2 }' | cut -d"'" -f1 # Primeiro indentifica os Scanners, Depois retira a Camera Integrada e por fim extrai o ID do dispositivo,
+    echo -e "\nVerificando scanners disponíveis...\n"
+
+	scanimage -L | grep -v Camera | gawk -F '`' -P '{ print $2 }' | cut -d"'" -f1  || echo -e "\nNenhum scanner encontrado ou não foi possível se comunicar com o dispositivo.\n" # Primeiro indentifica os Scanners, Depois retira a Camera Integrada e por fim extrai o ID do dispositivo,
 
 
 # E porque esse comando para poder extrair um ID de dispositivo? Começando pelo primeiro 
@@ -386,7 +609,12 @@ killall -9 scanimage 1> /dev/null 2> /dev/null
 
 # Verificar se existe o dispositivo
 
-scanimage -L  > /tmp/dispositivo.log
+scanimage -L  > /tmp/dispositivo.log 
+
+
+
+
+
 
 
 
@@ -404,11 +632,49 @@ scanimage -L  > /tmp/dispositivo.log
 # Ou seja, teste o comando diretamente sem precisar usar $?. Isso torna o código mais 
 # limpo e fácil de ler.
 
-if grep -Eq "^No scanners were identified." /tmp/dispositivo.log; then
+if grep -Eq "^No scanners were identified." /tmp/dispositivo.log ; then
 
-    echo -e "Scanner não encontrado\n\nOcorreu um erro de comunicação com o dispositivo de digitalização...\n\nDesconecte o cabo USB do sistema e volte a conecte novamente o cabo."
+    echo -e "\nScanner não encontrado\n\nOcorreu um erro de comunicação com o dispositivo de digitalização...\n\nDesconecte o cabo USB do sistema e volte a conecte novamente o cabo.\n\nConectar o scanner em outra porta USB\n\nEm alguns casos, a porta USB onde o scanner está conectado pode ter algum \nproblema. Tente conectar o scanner a outra porta USB do seu computador."
 
-    notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png  "inSANE" "\nScanner não encontrado.\n\nOcorreu um erro de comunicação com o dispositivo de digitalização...\n\nDesconecte o cabo USB do sistema e volte a conectar novamente.\n\n"
+
+echo "
+Verificar os drivers do scanner
+
+Certifique-se de que os drivers do scanner estão instalados corretamente. A maioria dos 
+scanners utiliza o software SANE (Scanner Access Now Easy) no Linux, que fornece os 
+drivers necessários. Você pode instalar o pacote do SANE ou verificar se ele já está 
+instalado.
+
+
+Verificar o status do scanner
+
+Você pode usar o comando scanimage -L para tentar detectar o scanner depois de cada uma 
+dessas mudanças, e ver se ele aparece na lista de dispositivos disponíveis.
+
+Se o problema continuar após essas tentativas, pode ser uma questão de hardware ou uma 
+falha mais profunda de comunicação entre o scanner e o sistema. Nesse caso, verificar o 
+manual do dispositivo ou consultar o fabricante para drivers específicos pode ser útil.
+
+
+Mas se o comando scanimage -L não estiver conseguindo detectar o dispositivo, pode ser 
+por vários motivos. Se a solução imediata for desconectar e reconectar o cabo USB, isso 
+pode ser um indício de que o sistema não está reconhecendo o scanner corretamente até que 
+a conexão seja resetada.
+
+"
+
+
+# O comando notify-send, por si só, não oferece suporte a HTML ou qualquer outro tipo de 
+# formatação avançada de texto, como links clicáveis. O conteúdo exibido nas notificações 
+# do notify-send é simples e limita-se a texto puro. Ou seja, embora você possa incluir 
+# URLs como texto na notificação, os links não serão clicáveis ou formatados como links.
+
+
+    notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png  "inSANE" "\nScanner não encontrado.\n\nOcorreu um erro de comunicação com o dispositivo de digitalização...\n\nDesconecte o cabo USB do sistema e volte a conecte novamente o cabo.\n\nConectar o scanner em outra porta USB\n\nEm alguns casos, a porta USB onde o scanner está conectado pode ter algum problema. Tente conectar o scanner a outra porta USB do seu computador.\n\n
+http://www.sane-project.org
+
+https://gitlab.com/sane-project"
+
 
     sleep 2
 
