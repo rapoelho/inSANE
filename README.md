@@ -1,5 +1,7 @@
 ## O que é o inSANE?
 
+https://youtu.be/2RC3N_SRmq0
+
 O inSANE é um script simples que utiliza o SANE para escanear imagens. Por padrão, ele escaneia as imagens para a pasta `~/Imagens/Scan` com uma resolução de 600 DPI, mas ele pode ser configurado com um arquivo `.insane.conf` que fica localizado na pasta `/home` do usuário. E esse arquivo tem a seguinte estrutura:
 
 ```
