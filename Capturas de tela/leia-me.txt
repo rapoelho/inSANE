@@ -1,1 +1,1 @@
-
+* O scanner da impressora Epson L3250 só funciona com o drive ET-2810 no xsane.
