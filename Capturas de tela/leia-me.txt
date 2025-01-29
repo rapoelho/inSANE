@@ -1,5 +1,16 @@
+========================================================================================
+
 * O scanner da impressora Epson L3250 só funciona com o drive ET-2810 no xsane.
 
 # scanimage > image.png
 Output format is not set, using pnm as a default.
 scanimage: sane_start: Error during device I/O
+
+L3250 Series USB 0x04b8/0x118a Complete
+
+http://www.sane-project.org/sane-backends.html#S-EPSON
+
+========================================================================================
+
+========================================================================================
+
