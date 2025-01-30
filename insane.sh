@@ -104,19 +104,58 @@
 # ----------------------------------------------------------------------------------------
 
 
-
-
-
 logo="/usr/share/icons/gnome/48x48/emblems/emblem-photos.png"
+
+# ----------------------------------------------------------------------------------------
 
 # Definir a versão
 
 versao="1.0.1"
 
-visualizador_de_imagem="gthumb"
+# ----------------------------------------------------------------------------------------
+
+# Visualizador de imagem
+
+clear
+
+# Lista de visualizadores de imagem comuns no Linux
+
+visualizadores_comuns=("gthumb" "feh" "ristretto" "eog" "shotwell" "gwenview" "sxiv" "mirage" "viewnior" "nomacs" "pix" "xnview" "qiv" "gpicview" "okular" "luminance" "display")
 
 
+# Inicializar variável
 
+visualizador_instalado=""
+
+
+# Verificar cada visualizador
+
+# Se o primeiro visualizador de imagem da lista estiver instalado, ele será atribuído à variável.
+
+for visualizador_de_imagem in "${visualizadores_comuns[@]}"; do
+
+    if command -v "$visualizador_de_imagem" &> /dev/null; then
+
+        echo "$visualizador_de_imagem está instalado."
+
+        sleep 2
+
+        break  # Interrompe o loop após encontrar o primeiro visualizador instalado
+    fi
+done
+
+
+# Se nenhum visualizador for encontrado
+
+if [ -z "$visualizador_de_imagem" ]; then
+
+    notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro" "Nenhum visualizador de imagem encontrado."
+
+    exit 1
+
+fi
+
+# ----------------------------------------------------------------------------------------
 
 # Definir palavras-chave para identificar várias marcas de scanners
 
@@ -127,11 +166,16 @@ SCANNER_KEYWORDS="Scanner|Ricoh|Lexmark|Epson|Canon|HP|Brother|Fujitsu|Xerox|Kod
 # https://www.vivaolinux.com.br/dica/Scanner-Lexmark-serie-X1100-X1200
 
 
+# ----------------------------------------------------------------------------------------
+
 # Nome dos grupos a serem verificados
 
 echo "scanner
-lp
-_saned" > /tmp/grupos.txt
+lp" > /tmp/grupos.txt
+
+
+# _saned
+
 
 
 # A definição de um array com nome dos grupos não funcionou. Retorna o grupo com valor 1000.
@@ -145,10 +189,11 @@ _saned" > /tmp/grupos.txt
 
 clear
 
+# lsusb
 
-for prog in yad scanimage notify-send "$visualizador_de_imagem"; do
+for prog in yad find scanimage notify-send "$visualizador_de_imagem"; do
 
-  which $prog 1> /dev/null 2> /dev/null || { echo "Programa $prog não está instalado."; exit 1; }
+  which $prog 1> /dev/null 2> /dev/null || { notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro" "Programa $prog não está instalado." ; exit 1; }
 
 done
 
@@ -197,6 +242,29 @@ yad \
 fi
 
 
+echo "
+# ----------------------------------------------------------------------------------------
+
+# O grupo scanner é utilizado para conceder permissões a usuários que precisam acessar 
+# scanners. Quando um usuário é adicionado a esse grupo, ele ganha permissão para acessar 
+# e usar scanners conectados ao sistema.
+
+# Os usuários no grupo scanner podem interagir com o hardware de digitalização sem precisar 
+# de permissões adicionais de superusuário (Root).
+
+
+# O grupo lp permite que usuários acessem e controlem impressoras conectadas ao sistema. 
+# Adicionar um usuário a esse grupo permite que ele use impressoras locais ou em rede sem a 
+# necessidade de permissões elevadas (como Root).
+
+
+# _saned => Fornecer suporte a scanners de rede (opcional).
+
+# ----------------------------------------------------------------------------------------
+
+"
+
+
 # Obtém todos os grupos aos quais o usuário pertence (inclui o grupo primário)
 
 USER_GROUPS=$(groups "$USER" | cut -d: -f2)
@@ -205,12 +273,24 @@ echo "Grupos do usuário $USER: $USER_GROUPS"
 
 
 
+# Verifica se o grupo scanner existe
+
+# if ! grep -q "^scanner:" /etc/group; then
+
+#    echo -e "\nCriando o grupo 'scanner'...\n"
+
+#    groupadd scanner
+
+# fi
+
+
+
 # Loop para ler cada linha do arquivo
 
 while IFS= read -r grupo; do
 
 
-# Verifica se o usuário está no grupo 'scanner'
+# Verifica se o usuário está no grupo '$grupo'
 
 if ! groups "$USER" | grep &>/dev/null "\b$grupo\b"; then
 
@@ -256,7 +336,19 @@ rm /tmp/grupos.txt
 check_saned_status() {
 
 
-echo -e "\nIniciando verificação do serviço SANE...\n"
+echo "Iniciando verificação do serviço SANE...
+
+
+O serviço saned no Linux é utilizado para fornecer suporte a scanners de rede. Ele 
+funciona como um servidor de scanner, permitindo que dispositivos de digitalização 
+(como scanners) conectados a uma máquina Linux sejam acessados por outras máquinas 
+na mesma rede.
+
+A principal finalidade do saned é oferecer a funcionalidade de digitalização remota. Ou 
+seja, em vez de precisar conectar o scanner fisicamente a cada máquina que precise 
+utilizá-lo, você pode ter um scanner centralizado e acessá-lo via rede por outras 
+máquinas, desde que elas tenham o software necessário para isso.
+"
 
 
     # Tentar verificar com systemctl (usado por sistemas com systemd)
@@ -269,7 +361,7 @@ echo -e "\nIniciando verificação do serviço SANE...\n"
 
             notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\n# systemctl enable saned.service \n\n# systemctl restart saned.service"
 
-            exit 1
+            # exit 1
         fi
 
 
@@ -283,7 +375,7 @@ echo -e "\nIniciando verificação do serviço SANE...\n"
 
             notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\n# service saned restart"
 
-            exit 1
+            # exit 1
         fi
 
 
@@ -297,7 +389,7 @@ echo -e "\nIniciando verificação do serviço SANE...\n"
 
             notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\n# update-rc.d saned defaults \n\n# /etc/init.d/saned restart"
 
-            exit 1
+            # exit 1
         fi
 
 
@@ -311,7 +403,7 @@ echo -e "\nIniciando verificação do serviço SANE...\n"
 
             notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\n# chmod +x /etc/rc.d/rc.saned \n\n# /etc/rc.d/rc.saned restart"
 
-            exit 1
+           # exit 1
         fi
     
 
@@ -325,7 +417,7 @@ echo -e "\nIniciando verificação do serviço SANE...\n"
 
             notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\n# update-rc.d saned defaults \n\n# /etc/init.d/saned restart"
 
-            exit 1
+            # exit 1
         fi
 
 
@@ -339,7 +431,7 @@ echo -e "\nIniciando verificação do serviço SANE...\n"
 
             notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "\nServiço 'saned' não encontrado ou não está ativo:\n\n# ln -s /etc/sv/saned /var/service/ \n\n# sv restart saned"
 
-            exit 1
+           # exit 1
         fi
 
 
@@ -353,7 +445,7 @@ echo -e "\nIniciando verificação do serviço SANE...\n"
 
             notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\n# rc-update add saned default \n\n# /etc/init.d/saned restart"
 
-            exit 1
+            # exit 1
         fi
 
 
@@ -376,18 +468,16 @@ echo -e "\nIniciando verificação do serviço SANE...\n"
             notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro no Serviço" "Serviço 'saned' não encontrado ou não está ativo:\n\nAdicione 'services.sane.enable = true;' no arquivo /etc/nixos/configuration.nix  \n\n# nixos-rebuild switch"
 
 
-
-
-            exit 1
+           # exit 1
     fi
 
 
 
     else
 
-        echo -e "\nNenhum método de gerenciamento de serviços reconhecido encontrado (systemd, service, init.d, runit, OpenRC). \n"
+       notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro" "Nenhum método de gerenciamento de serviços reconhecido encontrado (systemd, service, init.d, runit, OpenRC)."
 
-        exit
+       # exit
 
     fi
 }
@@ -450,7 +540,7 @@ if lsusb | grep -Ei "$SCANNER_KEYWORDS"; then
 
 else
 
-    echo "Nenhum scanner detectado na interface USB."
+    notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro" "Nenhum scanner detectado na interface USB."
 
     # exit 1
 fi
@@ -603,6 +693,7 @@ Resolucao=$ResolucaoPadrao
 
 selecionarScanner() {
 
+    echo "Detectando Scanner..."
 
 # Como funciona a detecção automática do Scanner?
 
@@ -616,8 +707,25 @@ selecionarScanner() {
 
     echo -e "\nVerificando scanners disponíveis...\n"
 
-	scanimage -L | grep -v Camera | gawk -F '`' -P '{ print $2 }' | cut -d"'" -f1  || echo -e "\nNenhum scanner encontrado ou não foi possível se comunicar com o dispositivo.\n" # Primeiro indentifica os Scanners, Depois retira a Camera Integrada e por fim extrai o ID do dispositivo,
 
+    # Primeiro indentifica os Scanners, Depois retira a Camera Integrada e por fim extrai o ID do dispositivo.
+
+	Scanner=$(scanimage -L | grep -v Camera | gawk -F '`' -P '{ print $2 }' | cut -d"'" -f1)
+
+
+
+if [ -z "$Scanner" ]; then 
+
+   notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro" "Nenhum scanner encontrado ou não foi possível se comunicar com o dispositivo." 
+
+   exit
+
+fi
+
+
+echo "Foi Detectado o Scanner $Scanner."
+
+sleep 1
 
 # E porque esse comando para poder extrair um ID de dispositivo? Começando pelo primeiro 
 # comando, o scanimage -L ele existe para que seja feita uma lista de quais dispositivos 
@@ -625,6 +733,7 @@ selecionarScanner() {
 
 
 }
+
 
 # ----------------------------------------------------------------------------------------
 
@@ -677,6 +786,12 @@ killall -9 scanimage 1> /dev/null 2> /dev/null
 scanimage -L  > /tmp/dispositivo.log 
 
 
+# scanimage -L
+
+# No scanners were identified. If you were expecting something different,
+# check that the scanner is plugged in, turned on and detected by the
+# sane-find-scanner tool (if appropriate). Please read the documentation
+# which came with this software (README, FAQ, manpages).
 
 
 
@@ -698,6 +813,7 @@ scanimage -L  > /tmp/dispositivo.log
 # limpo e fácil de ler.
 
 if grep -Eq "^No scanners were identified." /tmp/dispositivo.log ; then
+
 
     echo -e "\nScanner não encontrado\n\nOcorreu um erro de comunicação com o dispositivo de digitalização...\n\nDesconecte o cabo USB do sistema e volte a conecte novamente o cabo.\n\nConectar o scanner em outra porta USB\n\nEm alguns casos, a porta USB onde o scanner está conectado pode ter algum \nproblema. Tente conectar o scanner a outra porta USB do seu computador."
 
@@ -779,17 +895,16 @@ fi
 # ----------------------------------------------------------------------------------------
 
 
-echo -e "\nBem-vindo ao inSANE\nEsse é um Script simples para usar o Scanner por meio do SANE\n Versão $versao \nScript desenvolvido por Guilherme de Oliveira e Fernando Souza\n"
+echo -e "\nBem-vindo ao inSANE\nEsse é um Script simples para usar o Scanner por meio do SANE\nVersão $versao \nScript desenvolvido por Guilherme de Oliveira e Fernando Souza\n"
 
 arquivoConfiguracao
 
 
-echo "Detectando Scanner..."
+# Selecionando o Scanner
 
-Scanner=$(selecionarScanner) # Selecionando o Scanner
+selecionarScanner
 
 
-echo "Foi Detectado o Scanner $Scanner."
 
 echo "Escaneando..."
 
@@ -805,16 +920,60 @@ arquivo="Imagem_$(date +%d-%m-%Y_%H-%M-%S).jpg"
 # if [ $? -eq 0 ]; then
 
 
-if scanimage --device "$Scanner" --format=jpeg --output-file "$Pasta"/"$arquivo" --resolution "$Resolucao" | progresso; then
+# ----------------------------------------------------------------------------------------
+
+# Para remover os arquivos de tamanho zero da pasta "$Pasta"
+
+find "$Pasta" -type f -size 0 -delete
+
+
+# Digitalizando documento
+
+scanimage --device "$Scanner" --format=jpeg --output-file "$Pasta"/"$arquivo" --resolution "$Resolucao" | progresso
+
+
+# Foi Detectado o Scanner epson2:net:xxx.xxx.xxx.x.
+# Escaneando...
+# scanimage: sane_start: Error during device I/O
+
+
+# O erro scanimage: sane_start: Error during device I/O geralmente está relacionado a 
+# problemas de comunicação entre o software e o scanner. Isso pode ocorrer devido a várias 
+# razões, como configuração incorreta, permissões, problemas de rede ou conflitos com o 
+# driver SANE.
+
+
+# ----------------------------------------------------------------------------------------
+
+
+# Verificar o tamanho do arquivo antes de abrir
+
+        ARQUIVO_TAMANHO=$(stat -c %s "$Pasta"/"$arquivo")
+        
+        # Se o tamanho do arquivo for 0, notificar o usuário e não abrir
+
+        if [[ $ARQUIVO_TAMANHO -eq 0 ]]; then
+
+
+            # Para remover os arquivos de tamanho zero da pasta "$Pasta"
+
+            find "$Pasta" -type f -size 0 -delete
+
+
+            notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro" "Imagem não escaneada verifique a comunicar com o dispositivo..."
+
+            exit 1
+
+        fi
+
+# ----------------------------------------------------------------------------------------
+
 
     echo "Imagem escaneada com sucesso em $Pasta em $Resolucao DPI"
 
     notify-send -t 100000 -i /usr/share/icons/gnome/48x48/emblems/emblem-default.png  "inSANE" "\n\nImagem escaneada com sucesso em $Pasta em $Resolucao DPI\n\n"
 
-fi
 
-
-# ----------------------------------------------------------------------------------------
 
 echo "
 Arquivos na pasta $Pasta
@@ -824,6 +983,7 @@ ls -l "$Pasta"
 
 
 sleep 3
+
 
 
 "$visualizador_de_imagem" "$Pasta"/"$arquivo"
