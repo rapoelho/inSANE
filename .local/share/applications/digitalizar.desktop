@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Digitalizar documentos
+Comment=inSANE é um script de escaneamento simples que usa SANE para escanear documentos.
+Exec=/usr/local/bin/insane.sh
+Icon=/usr/share/icons/gnome/48x48/emblems/emblem-photos.png
+Path=
+Categories=Graphics;
+Terminal=true
+StartupNotify=false
+
+Keywords[pt_BR]=digitalizar;documento;insane;
