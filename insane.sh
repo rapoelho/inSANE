@@ -67,6 +67,8 @@
 # https://linuxdicasesuporte.blogspot.com/2018/06/scanner-com-sane-para-debian-e-ubuntu.html
 # https://linuxdicasesuporte.blogspot.com/2020/02/liberar-o-scanner-de-rede-no-firewall.html
 # https://www.vivaolinux.com.br/dica/Configurar-scanner-no-Debian-Lenny-Linux
+# https://wiki.archlinux.org/title/SANE
+# https://help.ubuntu.com/community/SaneDaemonTutorial
 
 # ----------------------------------------------------------------------------------------
 
@@ -118,9 +120,11 @@ versao="1.0.1"
 
 clear
 
+visualizador_imagem(){
+
 # Lista de visualizadores de imagem comuns no Linux
 
-visualizadores_comuns=("gthumb" "feh" "ristretto" "eog" "shotwell" "gwenview" "sxiv" "mirage" "viewnior" "nomacs" "pix" "xnview" "qiv" "gpicview" "okular" "luminance" "display")
+visualizadores_comuns=("gthumb" "feh" "ristretto" "eog" "shotwell" "gwenview" "sxiv" "mirage" "viewnior" "nomacs" "pix" "xnview" "qiv" "gpicview" "okular" "luminance" "loupe" "display")
 
 
 # Inicializar variável
@@ -154,6 +158,12 @@ if [ -z "$visualizador_de_imagem" ]; then
     exit 1
 
 fi
+
+
+}
+
+
+# visualizador_imagem
 
 # ----------------------------------------------------------------------------------------
 
@@ -189,9 +199,10 @@ lp" > /tmp/grupos.txt
 
 clear
 
-# lsusb
+# lsusb, "$visualizador_de_imagem"
+ 
 
-for prog in yad find scanimage notify-send "$visualizador_de_imagem"; do
+for prog in yad find scanimage notify-send ; do
 
   which $prog 1> /dev/null 2> /dev/null || { notify-send -t 100000 -i /usr/share/icons/gnome/48x48/status/dialog-error.png "Erro" "Programa $prog não está instalado." ; exit 1; }
 
@@ -986,8 +997,10 @@ sleep 3
 
 
 
-"$visualizador_de_imagem" "$Pasta"/"$arquivo"
+# "$visualizador_de_imagem" "$Pasta"/"$arquivo"
 
+
+xdg-open "$Pasta"/"$arquivo"
 
 
 # ----------------------------------------------------------------------------------------
